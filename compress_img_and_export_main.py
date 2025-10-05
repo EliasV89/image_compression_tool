@@ -4,6 +4,7 @@ import pathlib
 import zipfile
 from fnmatch import fnmatch
 from PIL import Image, ImageDraw, ImageFont
+from tqdm import tqdm
 
 
 def zip_directory(folder_path, zip_path):
@@ -15,100 +16,70 @@ def zip_directory(folder_path, zip_path):
                 zipf.write(file_path, file_path[len_dir_path:])
 
 
-# Paste root path to directory with test that contains all subdirectories and files to be compressed
-### THE ONLY INPUT THAT NEEDS TO BE CHANGED PER NEW JOB ###
-#root = r'N:\Common\B_lab\Monica Wiberg\TCS-2751 Slitstyrka 430GT 2'
+# Input arguments
+if len(sys.argv) < 2:
+    print("Usage: python compress_images.py <root_directory>")
+    sys.exit(1)
+
 root = sys.argv[1]
-image_quality = 30 # Retained image quality, in %
+image_quality = 30  # Retained image quality, in %
 
-# Main location for exporting compressed images to
-target_path = 'C:\Image Compression Exports'
-try:
-    os.mkdir(target_path)
-except:
-    print(f'Directory already exists')
-print(f'root path: {root}\ntarget path: {target_path}')
+# Main export path
+target_path = r'C:\Image Compression Exports'
+os.makedirs(target_path, exist_ok=True)
+print(f'Root path: {root}\nTarget path: {target_path}')
 
-
-'''
-Create folder in main location for export
-'''
-# Get name of parent folder
+# Create folder for this specific job
 root_subdir = pathlib.PurePath(root).name
+target_path = os.path.join(target_path, root_subdir + '_comp')
+os.makedirs(target_path, exist_ok=True)
 
-# Create new subdirectory for current job
-target_path = target_path + '/' + root_subdir + '_comp'
-try:
-    os.mkdir(target_path)
-except:
-    print(f'Directory already exists')
-
-
-'''
-Image compression part
-'''
-pattern = "*.tif"
+# File patterns to match
 patterns = ['*.tif', '*.bmp', '*.jpg', '*.png']
 
-n = 1 # Variable to count number of files
-i = 1 # Loop variable to count how many files have been processed
-
+# Count total number of images
+file_list = []
 for pattern in patterns:
-    for path, subdirs, files in os.walk(root):
+    for path, _, files in os.walk(root):
         for file in files:
             if fnmatch(file, pattern):
-                n += 1
-        
+                file_list.append(os.path.join(path, file))
 
+n = len(file_list)
+if n == 0:
+    print("No matching image files found.")
+    sys.exit(0)
 
-for pattern in patterns:
-    # Loop to go through all subdirectories and files in root location, compress images, and then save compressed images to export location
-    for path, subdirs, files in os.walk(root):
-        target_subdir_path = path.replace(root, target_path)
-        new_path = target_subdir_path
+# Start compression with progress bar
+with tqdm(total=n, desc="Compressing images", unit="img", ncols=80, colour='cyan') as pbar:
+    for file_path in file_list:
+        rel_dir = os.path.dirname(file_path).replace(root, target_path)
+        os.makedirs(rel_dir, exist_ok=True)
+
+        name = os.path.basename(file_path)
+        ext = os.path.splitext(name)[1]
+        new_name = name.replace(ext, '.jpg')
+        image_path = os.path.join(rel_dir, new_name)
 
         try:
-            os.mkdir(new_path)
-        except:
-            pass
+            im = Image.open(file_path)
 
-        for name in files:
+            # DRAW text overlay
+            draw = ImageDraw.Draw(im)
+            im_text = file_path
+            font = ImageFont.truetype("segoeui.ttf", 30)
+            position = (10, 0)
+            left, top, right, bottom = draw.textbbox(position, im_text, font=font)
+            draw.rectangle((left - 20, top - 20, right + 10, bottom + 3), fill='black')
+            draw.text(position, im_text, font=font, fill='white')
 
-            if fnmatch(name, pattern):
-                file_path = os.path.join(path, name)
+            # Save compressed image
+            im.save(image_path, optimize=True, quality=image_quality)
+        except Exception as e:
+            tqdm.write(f"Error processing {file_path}: {e}")
 
-                im = Image.open(file_path)
-                new_name = name.replace(pattern[1:], '.jpg')
-                try:
-                    os.mkdir(new_path)
-                except:
-                    pass
-                
+        pbar.update(1)
 
-                i += 1
-                image_path = new_path + '/' + new_name
-                '''
-                DRAW METHOD
-                '''
-
-                # DRAW HERE #
-                draw = ImageDraw.Draw(im)
-                im_text = file_path
-                font = ImageFont.truetype("segoeui.ttf", 30)
-                position = (10, 0)
-                left, top, right, bottom = draw.textbbox(position, im_text, font=font)
-
-                bbox = draw.textbbox(position, im_text, font=font)
-                draw.rectangle((left-20, top-20, right+10, bottom+3), fill='black')
-                draw.text(position, im_text, font=font, fill='white')
-                '''
-                END DRAW
-                '''
-
-                im.save(image_path, optimize=True, quality=30)
-                
-                os.system('cls||clear')
-                print(f'{int(100*i/n)}% Completed \t Processed images {i}/{n} \t')
-
-# Create a zip archive with the compressed directories and images
-zip_directory(target_path, target_path+'.zip')
+# Create zip archive
+zip_directory(target_path, target_path + '.zip')
+print(f"\n✅ Compression complete. Zip archive created at:\n{target_path + '.zip'}")
