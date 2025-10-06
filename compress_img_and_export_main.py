@@ -21,6 +21,18 @@ def zip_directory(folder_path, zip_path):
                 zipf.write(file_path, file_path[len_dir_path:])
 
 
+def get_root_path():
+    """Prompt user for the root path interactively."""
+    console.print("\n[bold cyan]Enter the root folder path to compress images from:[/bold cyan]")
+    root = input("→ ").strip()
+
+    if not root or not os.path.exists(root):
+        console.print(f"[red]Invalid or missing path:[/red] {root}")
+        sys.exit(1)
+
+    return root
+
+
 def get_compression_quality(default=30):
     """Prompt user to set image compression quality."""
     console.print("\n[bold cyan]Enter compression quality (1–100)[/bold cyan] "
@@ -42,16 +54,12 @@ def get_compression_quality(default=30):
 
 
 def main():
-    # --- Input ---
-    # --- Get root path interactively ---
-    console.print("\n[bold cyan]Enter the root folder path to compress images from:[/bold cyan]")
-    root = input("→ ").strip()
+    # --- Startup Prompt ---
+    console.print("\n" + "─" * 50)
+    console.print("[bold white]  IMAGE COMPRESSION TOOL[/bold white]")
+    console.print("─" * 50)
 
-    # Basic validation
-    if not root or not os.path.exists(root):
-        console.print(f"[red]Invalid path:[/red] {root}")
-        sys.exit(1)
-
+    root = get_root_path()
     image_quality = get_compression_quality(default=30)
 
     # --- Setup paths ---
@@ -63,7 +71,7 @@ def main():
     os.makedirs(target_path, exist_ok=True)
 
     console.print(Panel.fit(
-        f"[bold white]Image Compression Tool[/bold white]\n"
+        f"[bold white]Compression Job Summary[/bold white]\n"
         f"[cyan]Root:[/cyan] {root}\n"
         f"[cyan]Target:[/cyan] {target_path}\n"
         f"[cyan]Quality:[/cyan] {image_quality}%",
