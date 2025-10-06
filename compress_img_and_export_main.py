@@ -43,11 +43,15 @@ def get_compression_quality(default=30):
 
 def main():
     # --- Input ---
-    if len(sys.argv) < 2:
-        console.print("[bold red]Usage:[/bold red] python compress_images.py <root_directory>")
+    # --- Get root path interactively ---
+    console.print("\n[bold cyan]Enter the root folder path to compress images from:[/bold cyan]")
+    root = input("→ ").strip()
+
+    # Basic validation
+    if not root or not os.path.exists(root):
+        console.print(f"[red]Invalid path:[/red] {root}")
         sys.exit(1)
 
-    root = sys.argv[1]
     image_quality = get_compression_quality(default=30)
 
     # --- Setup paths ---
