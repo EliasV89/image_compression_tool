@@ -1,0 +1,6 @@
+# Core image handling
+Pillow>=10.0.0
+
+# Terminal progress bar and rich output
+rich>=13.7.0
+tqdm>=4.66.0
